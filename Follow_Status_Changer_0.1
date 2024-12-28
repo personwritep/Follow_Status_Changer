@@ -1,0 +1,100 @@
+// ==UserScript==
+// @name         Follow Status Changer
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  「公開フォロー」を「非公開フォロー」に変換する
+// @author       Ameba Blog User
+// @match        https://blog.ameba.jp/ucs/blgfavorite/*
+// @match        https://blog.ameba.jp/reader.do?bnm*
+// @match        https://blog.ameba.jp/readerend.do*
+// @grant        none
+// ==/UserScript==
+
+
+if(document.querySelector('#readerList')){ // フォロー管理ページで有効
+
+    let target=document.querySelector('body'); // 監視 target
+    let monitor=new MutationObserver(status);
+    monitor.observe(target, {childList: true, subtree: true}); // 監視開始
+
+    status();
+
+    function status(){ //「公開フォロー」を「非公開」に変更
+        let k;
+        let blog_id=[];
+        let status_span=[];
+        let del_button=[];
+        let blog_name=document.querySelectorAll('input[name="blog_name"]');
+        let table_tr=document.querySelectorAll('.tableList tbody tr');
+
+        let info=document.createElement('div');
+        info.textContent="「承認済み」ボタンをクリックすると"+
+            "「公開フォロー」を「非公開フォロー」に自動的に変更します";
+        info.style.margin='6px 0 -12px';
+        info.style.padding='2px 6px 1px';
+        info.style.color='#fff';
+        info.style.background='#2196f3';
+        let box=document.querySelector('#ucsMainLeft #notes');
+        if(!box.querySelector('div')){
+            box.appendChild(info); }
+
+        let open_style='padding: 4px 8px 3px 8px; border: 1px solid #ccc; border-radius: 4px; '+
+            'background: rgb(195 226 236); cursor: pointer;';
+
+        for(k=0; k<table_tr.length; k++){
+            blog_id[k]=blog_name[k].getAttribute('value');
+            del_button[k]=table_tr[k].querySelector('.btnDelete');
+            status_span[k]=table_tr[k].querySelector('.status span');
+            if(status_span[k].classList.contains('open')==true){
+                status_span[k].style=open_style;
+                win_open(status_span[k], blog_id[k], del_button[k]); }}
+
+
+        function win_open(span, id, del){ // 公開→非公開の自動変更
+            span.onclick=function(){
+                del.click();
+                setTimeout(()=>{ // 対象ブログの削除ボタンを押す
+                    let ok=document.querySelector('.minimumApplyButton a:first-child');
+                    if(ok){
+                        ok.click();
+                    }}, 40);
+                setTimeout(()=>{ // 対象ブログを非公開フォローする
+                    let follow_url='https://blog.ameba.jp/reader.do?bnm=' + id + '&status=close';
+                    window.open( follow_url, '_blank', 'top=0, left=0, width=480, height=360');
+                }, 200);
+            }}} // 処理を待ってから次のステップを実行
+
+} // フォロー管理ページで有効
+
+
+
+if(document.querySelector('#header.rd-header')){ // フォロー登録画面で有効
+
+    let target=document.querySelector('body'); // 監視 target
+    let monitor=new MutationObserver(ffcheker_do);
+    monitor.observe(target, {childList: true, subtree: true}); // 監視開始
+
+
+    function ffcheker_do(){
+        let win_url=window.location.search.substring(1,window.location.search.length);
+        if(win_url.indexOf('status=close')!=-1){
+            if(!document.querySelector('.rd-error._whole .error')){ // 既にフォローしていない事が条件
+                setTimeout(()=>{ // 非公開でフォローするにチェックを入れる
+                    document.querySelector('#secInValidateNumber_01').checked=true;
+                }, 20);
+                setTimeout(()=>{ //「フォロー」決定ボタンを押す
+                    document.querySelector('.rd-btnSubmit').click();
+                }, 40); }
+            else{
+                location.reload(); }}
+        else{ // 処理終了画面の場合
+            setTimeout(()=>{ // フォロー管理のトップを開く
+                let top_href='https://blog.ameba.jp/ucs/blgfavorite/favoritelist.do';
+                window.opener.location.href=top_href;
+                window.close();
+            }, 20);
+        }
+    } // 処理の結果をフォロー管理画面に反映
+
+} // フォロー登録画面で有効
+
