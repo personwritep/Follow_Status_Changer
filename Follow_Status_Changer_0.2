@@ -1,0 +1,111 @@
+// ==UserScript==
+// @name         Follow Status Changer
+// @namespace    http://tampermonkey.net/
+// @version      0.2
+// @description  「公開フォロー」を「非公開フォロー」に変換する
+// @author       Ameba Blog User
+// @match        https://blog.ameba.jp/ucs/blgfavorite/*
+// @match        https://blog.ameba.jp/reader.do?bnm*
+// @match        https://blog.ameba.jp/readerend.do*
+// @grant        none
+// ==/UserScript==
+
+
+if(document.querySelector('#readerList')){ // フォロー管理ページで有効
+
+    status();
+
+    function status(){ //「公開フォロー」を「非公開」に変更
+        let k;
+        let blog_id=[];
+        let status_span=[];
+        let del_button=[];
+        let blog_name=document.querySelectorAll('input[name="blog_name"]');
+        let table_tr=document.querySelectorAll('.tableList tbody tr');
+
+        let info=
+            '<div class="info">「承認済み」ボタンをクリックすると'+
+            '「公開フォロー」を「非公開フォロー」に自動的に変更します'+
+            '<style>.info { font-family: inherit; font-size: 12px; margin: 6px 0 -12px; '+
+            'padding: 2px 6px 1px; color: #fff; background: #2196f3; } '+
+            '.tableList .open { padding: 4px 8px 3px 8px !important; border: 1px solid #ccc; '+
+            'border-radius: 4px; background: rgb(195 226 236); cursor: pointer; } '+
+            '</style></div>';
+
+        let box=document.querySelector('#ucsMainLeft #notes');
+        if(!box.querySelector('.info')){
+            box.insertAdjacentHTML('beforeend', info); }
+
+
+
+        let open_id=sessionStorage.getItem('FSC'); //🔵
+        if(open_id){
+            if(open_id!=0){ // 未処理なら実行
+                setTimeout(()=>{
+                    sessionStorage.setItem('FSC', 0); //🔵
+                    let follow_url='https://blog.ameba.jp/reader.do?bnm=' + open_id + '&status=close';
+                    let subwin=window.open( follow_url );
+                }, 20); }}
+
+
+
+        for(k=0; k<table_tr.length; k++){
+            blog_id[k]=blog_name[k].getAttribute('value');
+            del_button[k]=table_tr[k].querySelector('.btnDelete');
+            status_span[k]=table_tr[k].querySelector('.status span');
+            if(status_span[k].classList.contains('open')==true){
+                win_open(status_span[k], blog_id[k], del_button[k]); }}
+
+
+        function win_open(span, id, del){ // 公開→非公開の自動変更
+            span.onclick=function(){
+                del.click();
+                setTimeout(()=>{ // 対象ブログの削除ボタンを押す
+                    let ok=document.querySelector('.minimumApplyButton a:first-child');
+                    if(ok){
+                        sessionStorage.setItem('FSC', id); //🔵
+                        ok.click();
+                    }}, 20); }
+
+        } // win_open()
+
+    } // status()
+
+} // フォロー管理ページで有効
+
+
+
+
+if(document.querySelector('#header.rd-header')){ // フォロー登録画面で有効
+    let target=document.querySelector('body'); // 監視 target
+    let monitor=new MutationObserver(changer);
+    monitor.observe(target, {childList: true, subtree: true}); // 監視開始
+
+
+    function changer(){
+        let win_url=window.location.search.substring(1,window.location.search.length);
+        if(win_url.indexOf('status=close')!=-1){
+            if(!document.querySelector('.rd-error._whole .error')){ // 既にフォローしていない
+                setTimeout(()=>{ // 非公開でフォローするにチェックを入れる
+                    document.querySelector('#secInValidateNumber_01').checked=true;
+                }, 20);
+                setTimeout(()=>{ //「フォロー」決定ボタンを押す
+                    document.querySelector('.rd-btnSubmit').click();
+                }, 40); }
+            else{ // 既にフォローしている場合（タイミングが早過ぎた場合）
+                if(sessionStorage.getItem('FSC_reload')!=0){ //🔵
+                    sessionStorage.setItem('FSC_reload', 0); //🔵 一度だけリロード
+                    setTimeout(()=>{
+                        location.reload();
+                    }, 200); }}}
+        else{
+            if(location.pathname=='/readerend.do'){ // 処理終了画面の場合
+                setTimeout(()=>{ // 元ウインドウはフォロー管理のトップを開く
+                    let top_href='https://blog.ameba.jp/ucs/blgfavorite/favoritelist.do';
+                    window.opener.location.href=top_href;
+                    window.close(); // 処理タブを閉じる
+                }, 20); }}
+
+    } // change()
+
+} // フォロー登録画面で有効
