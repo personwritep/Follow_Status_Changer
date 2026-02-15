@@ -7,6 +7,7 @@
 // @match        https://blog.ameba.jp/ucs/blgfavorite/*
 // @match        https://blog.ameba.jp/reader.do?bnm*
 // @match        https://blog.ameba.jp/readerend.do*
+// @icon        https://www.google.com/s2/favicons?sz=64&domain=ameblo.jp
 // @grant        none
 // @updateURL        https://github.com/personwritep/Follow_Status_Changer/raw/main/Follow_Status_Changer.user.js
 // @downloadURL        https://github.com/personwritep/Follow_Status_Changer/raw/main/Follow_Status_Changer.user.js
